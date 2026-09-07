@@ -1,0 +1,11 @@
+scripts:
+  - name: Install album-viewer dependencies
+    command: cd album-viewer && npm ci
+    triggers:
+      - session.create
+  - name: Test validators (album-viewer)
+    command: cd album-viewer && npm test -- --run
+  - name: Type-check album-viewer
+    command: cd album-viewer && npm run type-check
+  - name: Build album-viewer
+    command: cd album-viewer && npm run build
