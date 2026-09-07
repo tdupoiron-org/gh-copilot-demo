@@ -1,5 +1,5 @@
 <template>
-  <section class="spotify-panel">
+  <section class="spotify-panel" :class="{ 'has-active-player': activeTrack }">
     <div v-if="loading" class="spotify-message">Loading Spotify...</div>
 
     <div v-else-if="!configured" class="spotify-message">
@@ -97,8 +97,13 @@
           <div class="track-actions">
             <time :datetime="track.playedAt">{{ formatPlayedAt(track.playedAt) }}</time>
             <div class="track-buttons">
-              <button class="play-btn" type="button" @click="togglePlayer(track)">
-                {{ activeTrackId === track.id ? 'Close player' : 'Play' }}
+              <button
+                class="play-btn"
+                :disabled="activeTrackId === track.id"
+                type="button"
+                @click="togglePlayer(track)"
+              >
+                {{ activeTrackId === track.id ? 'Playing' : 'Play' }}
               </button>
               <button
                 class="add-btn"
@@ -116,22 +121,33 @@
               </button>
             </div>
           </div>
-          <iframe
-            v-if="activeTrackId === track.id"
-            class="spotify-embed"
-            :src="getEmbedUrl(track)"
-            :title="`Play ${track.title} by ${track.artist}`"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-          ></iframe>
         </li>
       </ol>
     </div>
+
+    <aside v-if="activeTrack" class="sticky-player">
+      <div class="player-heading">
+        <div>
+          <strong>{{ activeTrack.title }}</strong>
+          <span>{{ activeTrack.artist }}</span>
+        </div>
+        <button class="close-player-btn" type="button" @click="activeTrackId = null">
+          Close
+        </button>
+      </div>
+      <iframe
+        :key="activeTrack.id"
+        class="spotify-embed"
+        :src="getEmbedUrl(activeTrack)"
+        :title="`Play ${activeTrack.title} by ${activeTrack.artist}`"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      ></iframe>
+    </aside>
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
 import type { Album } from '../types/album'
 import type { SpotifyProfile, SpotifyTrack } from '../types/spotify'
@@ -166,6 +182,9 @@ const error = ref<string | null>(null)
 const addingTrackId = ref<string | null>(null)
 const addedTrackIds = ref(new Set<string>())
 const activeTrackId = ref<string | null>(null)
+const activeTrack = computed(
+  () => tracks.value.find((track) => track.id === activeTrackId.value) ?? null,
+)
 const clientId = ref(getSpotifyClientId())
 const redirectUri = getSpotifyRedirectUri()
 const redirectUriSupported = isSpotifyRedirectUriSupported()
@@ -270,7 +289,7 @@ const addToCollection = async (track: SpotifyTrack): Promise<void> => {
 }
 
 const togglePlayer = (track: SpotifyTrack): void => {
-  activeTrackId.value = activeTrackId.value === track.id ? null : track.id
+  activeTrackId.value = track.id
 }
 
 const getEmbedUrl = (track: SpotifyTrack): string =>
@@ -288,6 +307,10 @@ onMounted(initialize)
 <style scoped>
 .spotify-panel {
   padding: 1rem;
+}
+
+.spotify-panel.has-active-player {
+  padding-bottom: 230px;
 }
 
 .spotify-heading {
@@ -491,6 +514,10 @@ onMounted(initialize)
   color: white;
 }
 
+.play-btn:disabled {
+  cursor: default;
+}
+
 .add-btn:disabled {
   background: #d7d7d7;
   color: #666;
@@ -498,11 +525,62 @@ onMounted(initialize)
 }
 
 .spotify-embed {
-  grid-column: 1 / -1;
   width: 100%;
   height: 152px;
   border: 0;
   border-radius: 12px;
+}
+
+.sticky-player {
+  position: fixed;
+  z-index: 1000;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  max-width: 1168px;
+  margin: 0 auto;
+  padding: 0.75rem;
+  background: rgba(22, 22, 22, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+}
+
+.player-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.25rem 0.6rem;
+  color: white;
+}
+
+.player-heading div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.player-heading strong,
+.player-heading span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-heading span {
+  color: #bbb;
+  font-size: 0.9rem;
+}
+
+.close-player-btn {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  background: transparent;
+  color: white;
+  cursor: pointer;
 }
 
 @media (max-width: 640px) {
@@ -528,6 +606,16 @@ onMounted(initialize)
   .track-buttons {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .spotify-panel.has-active-player {
+    padding-bottom: 250px;
+  }
+
+  .sticky-player {
+    right: 0.5rem;
+    bottom: 0.5rem;
+    left: 0.5rem;
   }
 }
 </style>
