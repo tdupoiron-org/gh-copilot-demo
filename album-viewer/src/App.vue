@@ -2,11 +2,11 @@
   <div class="app">
     <header class="header">
       <div>
-        <h1>🎵 {{ isAdmin ? 'Album Admin' : 'Album Collection' }}</h1>
-        <p>{{ isAdmin ? 'Create, edit, and remove albums' : 'Discover amazing music albums' }}</p>
+        <h1>🎵 {{ pageTitle }}</h1>
+        <p>{{ pageSubtitle }}</p>
       </div>
       <div class="header-actions">
-        <div v-if="!isAdmin" class="view-toggle" aria-label="Collection layout">
+        <div v-if="activeView === 'collection'" class="view-toggle" aria-label="Collection layout">
           <button
             class="view-btn"
             :class="{ active: viewMode === 'grid' }"
@@ -24,14 +24,38 @@
             List
           </button>
         </div>
-        <button class="nav-btn" @click="toggleAdmin">
-          {{ isAdmin ? 'View Collection' : 'Admin' }}
+        <button
+          v-if="activeView !== 'collection'"
+          class="nav-btn"
+          @click="activeView = 'collection'"
+        >
+          Collection
+        </button>
+        <button
+          v-if="activeView !== 'spotify'"
+          class="nav-btn spotify-nav-btn"
+          @click="activeView = 'spotify'"
+        >
+          Spotify
+        </button>
+        <button
+          v-if="activeView !== 'admin'"
+          class="nav-btn"
+          @click="activeView = 'admin'"
+        >
+          Admin
         </button>
       </div>
     </header>
 
     <main class="main">
-      <div v-if="loading" class="loading">
+      <SpotifyRecentlyPlayed
+        v-if="activeView === 'spotify'"
+        :albums="albums"
+        @collection-added="fetchAlbums"
+      />
+
+      <div v-else-if="loading" class="loading">
         <div class="spinner"></div>
         <p>Loading albums...</p>
       </div>
@@ -42,7 +66,7 @@
       </div>
 
       <AdminPanel
-        v-else-if="isAdmin"
+        v-else-if="activeView === 'admin'"
         :albums="albums"
         @changed="fetchAlbums"
       />
@@ -60,17 +84,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import axios from 'axios'
 import AlbumCard from './components/AlbumCard.vue'
 import AdminPanel from './components/AdminPanel.vue'
+import SpotifyRecentlyPlayed from './components/SpotifyRecentlyPlayed.vue'
 import type { Album } from './types/album'
 
 const albums = ref<Album[]>([])
 const loading = ref<boolean>(true)
 const error = ref<string | null>(null)
-const isAdmin = ref<boolean>(false)
+const queryParameters = new URLSearchParams(window.location.search)
+const spotifyCallback = queryParameters.has('code') || queryParameters.has('error')
+const activeView = ref<'collection' | 'spotify' | 'admin'>(
+  spotifyCallback ? 'spotify' : 'collection',
+)
 const viewMode = ref<'grid' | 'list'>('grid')
+const pageTitle = computed(() => {
+  if (activeView.value === 'admin') return 'Album Admin'
+  if (activeView.value === 'spotify') return 'Spotify History'
+  return 'Album Collection'
+})
+const pageSubtitle = computed(() => {
+  if (activeView.value === 'admin') return 'Create, edit, and remove albums'
+  if (activeView.value === 'spotify') return 'See the songs you played most recently'
+  return 'Discover amazing music albums'
+})
 
 const fetchAlbums = async (): Promise<void> => {
   try {
@@ -86,13 +125,7 @@ const fetchAlbums = async (): Promise<void> => {
   }
 }
 
-onMounted(() => {
-  fetchAlbums()
-})
-
-const toggleAdmin = (): void => {
-  isAdmin.value = !isAdmin.value
-}
+onMounted(fetchAlbums)
 </script>
 
 <style scoped>
@@ -159,6 +192,11 @@ const toggleAdmin = (): void => {
   border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.spotify-nav-btn {
+  background: #1ed760;
+  color: #111;
 }
 
 .main {
