@@ -88,8 +88,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           # Notion integration token (ntn_...) shared with the docs pages.
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          # Optional discovery hint for the root Notion page.
-          NOTION_DOCS_PAGE_ID: ${{ vars.NOTION_DOCS_PAGE_ID }}
+          # No page ID is provided on purpose: the notion-pr-docs-sync skill discovers
+          # the documentation root and its user-guide child page via Notion search.
           # Allow the repository-defined agent, skills and MCP servers to load in -p mode.
           GITHUB_COPILOT_PROMPT_MODE_WORKSPACE_MCP: 'true'
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
@@ -101,12 +101,15 @@ jobs:
             TARGET_PR="the latest merged pull request on the default branch"
           fi
 
+          # NOTE: do not pass --secret-env-vars NOTION_TOKEN here. That flag strips the
+          # variable from the MCP server environment, so the Notion MCP server would
+          # start without a token and every API call would fail with 401 unauthorized.
+          # Actions already masks the secret value in the logs.
           copilot \
             --agent notion-docs-updater \
             --allow-all-tools \
             --no-ask-user \
             --log-level info \
-            --secret-env-vars NOTION_TOKEN \
             -p "Run the \`notion-pr-docs-sync\` skill for ${TARGET_PR} in ${REPOSITORY}.
 
           The skill is the authoritative workflow: follow its inputs, procedure, safety
