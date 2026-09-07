@@ -26,6 +26,22 @@ namespace albums_api.Controllers
             return album is null ? NotFound() : Ok(album);
         }
 
+        // GET: albums/sort?sortBy=title|artist|price
+        [HttpGet("sort")]
+        public IActionResult GetSorted([FromQuery] string? sortBy)
+        {
+            var albums = Album.GetAll();
+            IEnumerable<Album> sortedAlbums = sortBy?.Trim().ToLowerInvariant() switch
+            {
+                "title" => albums.OrderBy(a => a.Title),
+                "artist" => albums.OrderBy(a => a.Artist),
+                "price" => albums.OrderBy(a => a.Price),
+                _ => albums
+            };
+
+            return Ok(sortedAlbums);
+        }
+
         [HttpPost]
         public IActionResult Post([FromBody] AlbumRequest request)
         {
