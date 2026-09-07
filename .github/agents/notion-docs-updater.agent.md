@@ -1,7 +1,7 @@
 ---
 name: notion-docs-updater
 description: 'Keeps product documentation in Notion synchronized with merged pull requests. Use after a PR is merged to update the documentation abstract and screenshot-backed user guide.'
-tools: [execute, read, search, web, 'makenotion/notion-mcp-server/*']
+tools: [execute, read, search, web, 'notion/*', 'makenotion/notion-mcp-server/*']
 ---
 
 # Notion documentation updater
