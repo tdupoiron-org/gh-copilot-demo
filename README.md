@@ -110,6 +110,28 @@ The solution uses the following default configuration:
 - **Album Viewer**: Runs on `http://localhost:3001` (TypeScript + Vue 3)
 - **API Endpoint**: The Vue app is configured to call the API at `localhost:3000`
 
+#### Spotify recently played
+
+Create an app in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard),
+open the viewer through a loopback IP such as `http://127.0.0.1:3001/`, add that
+exact URL as a redirect URI,
+copy `album-viewer/.env.example` to `album-viewer/.env.local`, and set the public
+app client ID:
+
+```bash
+cd album-viewer
+cp .env.example .env.local
+# Edit .env.local, then:
+npm run dev
+```
+
+Open the album viewer, select **Spotify**, and authorize access. The connector requests
+only the delegated `user-read-recently-played` and `user-read-private` scopes, identifies
+the connected Spotify user, and displays the latest 10 songs.
+It uses Spotify's Authorization Code flow with PKCE, so no client secret is stored in
+the application and tokens remain in the browser session. For local demos, the public
+client ID can also be entered directly on the Spotify screen.
+
 If you need to change these settings, you can modify:
 - API port: `albums-api/Properties/launchSettings.json`
 - Vue app configuration: Environment variables in `.vscode/launch.json` or set `VITE_ALBUM_API_HOST` environment variable
