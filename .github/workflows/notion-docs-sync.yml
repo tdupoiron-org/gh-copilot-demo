@@ -1,0 +1,78 @@
+name: Sync documentation to Notion
+
+# Runs GitHub Copilot CLI whenever a pull request is merged into the default branch.
+# Copilot uses the `notion-docs-updater` custom agent (.github/agents/) which declares
+# the Notion MCP server, and updates the documentation pages in Notion accordingly.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to document
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+  copilot-requests: write
+
+concurrency:
+  group: notion-docs-sync
+  cancel-in-progress: false
+
+jobs:
+  update-notion-docs:
+    # Only on an actual merge (a closed-without-merge PR must not trigger this),
+    # or on a manual dispatch.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install GitHub Copilot CLI
+        run: npm install -g @github/copilot
+
+      - name: Update the Notion documentation
+        env:
+          # Copilot CLI authentication (headless).
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+          # Notion integration token (ntn_...) shared with the docs pages.
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          # Root Notion page under which the documentation lives.
+          NOTION_DOCS_PAGE_ID: ${{ vars.NOTION_DOCS_PAGE_ID }}
+          # Allow the repository-defined agent and its MCP servers to load in -p mode.
+          GITHUB_COPILOT_PROMPT_MODE_WORKSPACE_MCP: 'true'
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          copilot \
+            --agent notion-docs-updater \
+            --allow-all-tools \
+            --no-ask-user \
+            --log-level info \
+            --secret-env-vars NOTION_TOKEN \
+            -p "Pull request #${PR_NUMBER} was just merged into the default branch of ${REPOSITORY}.
+
+          1. Inspect the merged pull request: run 'gh pr view ${PR_NUMBER} --repo ${REPOSITORY} --json number,title,body,url,mergedAt,author,files' and 'gh pr diff ${PR_NUMBER} --repo ${REPOSITORY}'. Read the source files you need for context.
+          2. Determine whether this change affects the user-facing documentation: new or changed features, API endpoints, configuration values, environment variables, setup, build or deployment steps, or removed functionality. Ignore purely internal changes such as dependency bumps, formatting, refactors with no behaviour change, and test-only changes.
+          3. If documentation is impacted, use the Notion MCP tools to find the relevant page(s) starting from the documentation root page '${NOTION_DOCS_PAGE_ID}'. Update the existing pages in place. Only create a new sub-page under that root when the change introduces a genuinely new topic.
+          4. Write documentation prose describing the current behaviour of the software. Do not paste diffs or commit hashes. Keep the existing tone and structure of each page.
+          5. Append at the end of every page you edited: 'Last updated from PR #${PR_NUMBER}' with a link to the pull request URL.
+          6. Do not modify any file in this repository and do not create commits, branches or pull requests. Notion is your only write target.
+
+          Finish with a short report: every Notion page you updated (title and URL) and what you changed, or an explicit statement that no documentation update was required."

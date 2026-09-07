@@ -2,6 +2,53 @@
 ## DATABASE                               ##
 ############################################
 
+variable "resource_group_name" {
+  description = "Name of the resource group that hosts the application infrastructure."
+  type        = string
+}
+
+variable "location" {
+  description = "Azure region for the application infrastructure."
+  type        = string
+}
+
+variable "container_registry_name" {
+  description = "Globally unique name for the Azure Container Registry."
+  type        = string
+}
+
+variable "openai_account_name" {
+  description = "Globally unique name for the Azure OpenAI account."
+  type        = string
+}
+
+############################################
+## PLATFORM SERVICES                      ##
+############################################
+
+resource "azurerm_container_registry" "container_registry" {
+  name                = var.container_registry_name
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  sku                 = "Basic"
+  admin_enabled       = false
+}
+
+resource "azurerm_cognitive_account" "openai" {
+  name                  = var.openai_account_name
+  resource_group_name   = var.resource_group_name
+  location              = var.location
+  kind                  = "OpenAI"
+  sku_name              = "S0"
+  custom_subdomain_name = var.openai_account_name
+
+  public_network_access_enabled = true
+}
+
+############################################
+## DATABASE                               ##
+############################################
+
 resource "null_resource" "db_schema" {
   depends_on = [
     azurerm_mssql_database.mssql_database

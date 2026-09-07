@@ -14,6 +14,9 @@ param registryUsername string
 param apiImage string
 param viewerImage string
 
+param containerRegistryName string = 'acr${replace(uniqueSuffix, '-', '')}'
+param openAiAccountName string = 'openai-${uniqueSuffix}'
+
 
 // Log analytics and App Insights for visibility 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-03-01-preview' = {
@@ -58,6 +61,32 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2021-06-01'
 resource blobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-06-01' = {
   parent: blobService
   name: blobContainerName
+}
+
+// Container Registry for application images
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+  name: containerRegistryName
+  location: location
+  sku: {
+    name: 'Basic'
+  }
+  properties: {
+    adminUserEnabled: false
+  }
+}
+
+// Azure OpenAI account
+resource openAiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: openAiAccountName
+  location: location
+  kind: 'OpenAI'
+  sku: {
+    name: 'S0'
+  }
+  properties: {
+    customSubDomainName: openAiAccountName
+    publicNetworkAccess: 'Enabled'
+  }
 }
 
 // Container Apps environment 
@@ -128,4 +157,6 @@ output env array=[
   'Environment name: ${containerAppsEnv.name}'
   'Storage account name: ${storageAccount.name}'
   'Storage container name: ${blobContainer.name}'
+  'Container Registry name: ${containerRegistry.name}'
+  'Azure OpenAI account name: ${openAiAccount.name}'
 ]
