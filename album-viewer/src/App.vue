@@ -1,8 +1,13 @@
 <template>
   <div class="app">
     <header class="header">
-      <h1>🎵 Album Collection</h1>
-      <p>Discover amazing music albums</p>
+      <div>
+        <h1>🎵 {{ isAdmin ? 'Album Admin' : 'Album Collection' }}</h1>
+        <p>{{ isAdmin ? 'Create, edit, and remove albums' : 'Discover amazing music albums' }}</p>
+      </div>
+      <button class="nav-btn" @click="toggleAdmin">
+        {{ isAdmin ? 'View Collection' : 'Admin' }}
+      </button>
     </header>
 
     <main class="main">
@@ -15,6 +20,12 @@
         <p>{{ error }}</p>
         <button @click="fetchAlbums" class="retry-btn">Try Again</button>
       </div>
+
+      <AdminPanel
+        v-else-if="isAdmin"
+        :albums="albums"
+        @changed="fetchAlbums"
+      />
 
       <div v-else class="albums-grid">
         <AlbumCard 
@@ -31,11 +42,13 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import AlbumCard from './components/AlbumCard.vue'
+import AdminPanel from './components/AdminPanel.vue'
 import type { Album } from './types/album'
 
 const albums = ref<Album[]>([])
 const loading = ref<boolean>(true)
 const error = ref<string | null>(null)
+const isAdmin = ref<boolean>(false)
 
 const fetchAlbums = async (): Promise<void> => {
   try {
@@ -54,6 +67,10 @@ const fetchAlbums = async (): Promise<void> => {
 onMounted(() => {
   fetchAlbums()
 })
+
+const toggleAdmin = (): void => {
+  isAdmin.value = !isAdmin.value
+}
 </script>
 
 <style scoped>
@@ -63,7 +80,10 @@ onMounted(() => {
 }
 
 .header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
   margin-bottom: 3rem;
   color: white;
 }
@@ -77,6 +97,17 @@ onMounted(() => {
 .header p {
   font-size: 1.2rem;
   opacity: 0.9;
+  margin: 0;
+}
+
+.nav-btn {
+  background: white;
+  color: #667eea;
+  border: 0;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .main {
@@ -149,6 +180,11 @@ onMounted(() => {
   
   .header h1 {
     font-size: 2rem;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
   }
   
   .albums-grid {

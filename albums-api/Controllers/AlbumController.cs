@@ -1,8 +1,5 @@
 ﻿using albums_api.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using System.Text.Json;
-using System.Text;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -26,13 +23,7 @@ namespace albums_api.Controllers
         public IActionResult Get(int id)
         {
             var album = Album.GetById(id);
-
-            if (album == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(album);
+            return album is null ? NotFound() : Ok(album);
         }
 
         // GET: albums/sort?sortBy=title|artist|price
@@ -51,5 +42,44 @@ namespace albums_api.Controllers
             return Ok(sortedAlbums);
         }
 
+        [HttpPost]
+        public IActionResult Post([FromBody] AlbumRequest request)
+        {
+            if (!IsValid(request))
+            {
+                return BadRequest("Title, artist, image URL, and a non-negative price are required.");
+            }
+
+            var album = Album.Add(request.Title, request.Artist, request.Price, request.ImageUrl);
+            return CreatedAtAction(nameof(Get), new { id = album.Id }, album);
+        }
+
+        [HttpPut("{id}")]
+        public IActionResult Put(int id, [FromBody] AlbumRequest request)
+        {
+            if (!IsValid(request))
+            {
+                return BadRequest("Title, artist, image URL, and a non-negative price are required.");
+            }
+
+            var album = Album.Update(id, request.Title, request.Artist, request.Price, request.ImageUrl);
+            return album is null ? NotFound() : Ok(album);
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            return Album.Delete(id) ? NoContent() : NotFound();
+        }
+
+        private static bool IsValid(AlbumRequest request)
+        {
+            return !string.IsNullOrWhiteSpace(request.Title)
+                && !string.IsNullOrWhiteSpace(request.Artist)
+                && !string.IsNullOrWhiteSpace(request.ImageUrl)
+                && request.Price >= 0;
+        }
+
+        public record AlbumRequest(string Title, string Artist, double Price, string ImageUrl);
     }
 }
