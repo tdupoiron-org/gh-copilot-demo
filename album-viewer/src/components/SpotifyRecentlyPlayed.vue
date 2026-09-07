@@ -94,7 +94,36 @@
             </a>
             <span>{{ track.artist }} · {{ track.album }}</span>
           </div>
-          <time :datetime="track.playedAt">{{ formatPlayedAt(track.playedAt) }}</time>
+          <div class="track-actions">
+            <time :datetime="track.playedAt">{{ formatPlayedAt(track.playedAt) }}</time>
+            <div class="track-buttons">
+              <button class="play-btn" type="button" @click="togglePlayer(track)">
+                {{ activeTrackId === track.id ? 'Close player' : 'Play' }}
+              </button>
+              <button
+                class="add-btn"
+                :disabled="isInCollection(track) || addingTrackId === track.id"
+                type="button"
+                @click="addToCollection(track)"
+              >
+                {{
+                  isInCollection(track)
+                    ? 'Added'
+                    : addingTrackId === track.id
+                      ? 'Adding...'
+                      : 'Add to collection'
+                }}
+              </button>
+            </div>
+          </div>
+          <iframe
+            v-if="activeTrackId === track.id"
+            class="spotify-embed"
+            :src="getEmbedUrl(track)"
+            :title="`Play ${track.title} by ${track.artist}`"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          ></iframe>
         </li>
       </ol>
     </div>
@@ -103,6 +132,8 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import axios from 'axios'
+import type { Album } from '../types/album'
 import type { SpotifyProfile, SpotifyTrack } from '../types/spotify'
 import {
   beginSpotifyAuthorization,
@@ -117,12 +148,24 @@ import {
   saveSpotifyClientId,
 } from '../utils/spotify'
 
+interface Props {
+  albums: Album[]
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  collectionAdded: []
+}>()
+
 const configured = ref(false)
 const connected = ref(false)
 const tracks = ref<SpotifyTrack[]>([])
 const profile = ref<SpotifyProfile | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const addingTrackId = ref<string | null>(null)
+const addedTrackIds = ref(new Set<string>())
+const activeTrackId = ref<string | null>(null)
 const clientId = ref(getSpotifyClientId())
 const redirectUri = getSpotifyRedirectUri()
 const redirectUriSupported = isSpotifyRedirectUriSupported()
@@ -196,6 +239,42 @@ const disconnect = (): void => {
   profile.value = null
   connected.value = false
 }
+
+const isInCollection = (track: SpotifyTrack): boolean =>
+  addedTrackIds.value.has(track.id)
+  || props.albums.some(
+    (album) =>
+      album.title.toLocaleLowerCase() === track.title.toLocaleLowerCase()
+      && album.artist.toLocaleLowerCase() === track.artist.toLocaleLowerCase(),
+  )
+
+const addToCollection = async (track: SpotifyTrack): Promise<void> => {
+  try {
+    addingTrackId.value = track.id
+    error.value = null
+    await axios.post<Album>('/albums', {
+      title: track.title,
+      artist: track.artist,
+      price: 0,
+      imageUrl: track.imageUrl
+        ?? 'https://via.placeholder.com/300x300/1DB954/white?text=Spotify',
+    })
+    addedTrackIds.value = new Set(addedTrackIds.value).add(track.id)
+    emit('collectionAdded')
+  } catch (err) {
+    error.value = `Unable to add "${track.title}" to the collection.`
+    console.error('Error adding Spotify track to collection:', err)
+  } finally {
+    addingTrackId.value = null
+  }
+}
+
+const togglePlayer = (track: SpotifyTrack): void => {
+  activeTrackId.value = activeTrackId.value === track.id ? null : track.id
+}
+
+const getEmbedUrl = (track: SpotifyTrack): string =>
+  `https://open.spotify.com/embed/track/${encodeURIComponent(track.id)}`
 
 const formatPlayedAt = (playedAt: string): string =>
   new Intl.DateTimeFormat(undefined, {
@@ -380,6 +459,52 @@ onMounted(initialize)
   font-size: 0.9rem;
 }
 
+.track-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.track-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-btn,
+.play-btn {
+  padding: 0.5rem 0.8rem;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.add-btn {
+  background: #1ed760;
+  color: #111;
+}
+
+.play-btn {
+  background: #667eea;
+  color: white;
+}
+
+.add-btn:disabled {
+  background: #d7d7d7;
+  color: #666;
+  cursor: default;
+}
+
+.spotify-embed {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 152px;
+  border: 0;
+  border-radius: 12px;
+}
+
 @media (max-width: 640px) {
   .spotify-heading {
     align-items: flex-start;
@@ -395,8 +520,14 @@ onMounted(initialize)
     height: 56px;
   }
 
-  .track-row time {
+  .track-actions {
     grid-column: 2;
+    align-items: flex-start;
+  }
+
+  .track-buttons {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

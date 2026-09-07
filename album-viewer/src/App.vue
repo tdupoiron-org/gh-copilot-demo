@@ -49,7 +49,11 @@
     </header>
 
     <main class="main">
-      <SpotifyRecentlyPlayed v-if="activeView === 'spotify'" />
+      <SpotifyRecentlyPlayed
+        v-if="activeView === 'spotify'"
+        :albums="albums"
+        @collection-added="fetchAlbums"
+      />
 
       <div v-else-if="loading" class="loading">
         <div class="spinner"></div>
