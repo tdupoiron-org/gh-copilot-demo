@@ -37,11 +37,10 @@ namespace albums_api.Controllers
 
         // GET: albums/sort?sortBy=title|artist|price
         [HttpGet("sort")]
-        public IActionResult GetSorted(string sortBy)
+        public IActionResult GetSorted([FromQuery] string? sortBy)
         {
             var albums = Album.GetAll();
-
-            IEnumerable<Album> sortedAlbums = sortBy?.ToLower() switch
+            IEnumerable<Album> sortedAlbums = sortBy?.Trim().ToLowerInvariant() switch
             {
                 "title" => albums.OrderBy(a => a.Title),
                 "artist" => albums.OrderBy(a => a.Artist),
