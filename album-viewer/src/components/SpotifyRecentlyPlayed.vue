@@ -81,13 +81,27 @@
 
       <ol v-else class="track-list">
         <li v-for="track in tracks" :key="`${track.id}-${track.playedAt}`" class="track-row">
-          <img
-            v-if="track.imageUrl"
-            :src="track.imageUrl"
-            :alt="`${track.album} cover`"
-            class="track-cover"
-          />
-          <div v-else class="track-cover track-placeholder" aria-hidden="true">♪</div>
+          <div class="track-cover-wrapper">
+            <img
+              v-if="track.imageUrl"
+              :src="track.imageUrl"
+              :alt="`${track.album} cover`"
+              class="track-cover"
+            />
+            <div v-else class="track-cover track-placeholder" aria-hidden="true">♪</div>
+            <button
+              class="cover-play-btn"
+              :class="{ playing: activeTrackId === track.id }"
+              :disabled="activeTrackId === track.id"
+              :aria-label="activeTrackId === track.id
+                ? `${track.title} is playing`
+                : `Play ${track.title}`"
+              type="button"
+              @click="togglePlayer(track)"
+            >
+              ▶
+            </button>
+          </div>
           <div class="track-info">
             <a :href="track.spotifyUrl" target="_blank" rel="noopener noreferrer">
               {{ track.title }}
@@ -97,14 +111,6 @@
           <div class="track-actions">
             <time :datetime="track.playedAt">{{ formatPlayedAt(track.playedAt) }}</time>
             <div class="track-buttons">
-              <button
-                class="play-btn"
-                :disabled="activeTrackId === track.id"
-                type="button"
-                @click="togglePlayer(track)"
-              >
-                {{ activeTrackId === track.id ? 'Playing' : 'Play' }}
-              </button>
               <button
                 class="add-btn"
                 :disabled="isInCollection(track) || addingTrackId === track.id"
@@ -293,7 +299,7 @@ const togglePlayer = (track: SpotifyTrack): void => {
 }
 
 const getEmbedUrl = (track: SpotifyTrack): string =>
-  `https://open.spotify.com/embed/track/${encodeURIComponent(track.id)}`
+  `https://open.spotify.com/embed/track/${encodeURIComponent(track.id)}?autoplay=1`
 
 const formatPlayedAt = (playedAt: string): string =>
   new Intl.DateTimeFormat(undefined, {
@@ -446,6 +452,39 @@ onMounted(initialize)
   object-fit: cover;
 }
 
+.track-cover-wrapper {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.cover-play-btn {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  cursor: pointer;
+  font-size: 1.35rem;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.track-cover-wrapper:hover .cover-play-btn,
+.cover-play-btn:focus-visible,
+.cover-play-btn.playing {
+  opacity: 1;
+}
+
+.cover-play-btn.playing {
+  background: rgba(30, 215, 96, 0.8);
+  cursor: default;
+}
+
 .track-placeholder {
   display: grid;
   place-items: center;
@@ -494,8 +533,7 @@ onMounted(initialize)
   gap: 0.5rem;
 }
 
-.add-btn,
-.play-btn {
+.add-btn {
   padding: 0.5rem 0.8rem;
   border: 0;
   border-radius: 999px;
@@ -507,15 +545,6 @@ onMounted(initialize)
 .add-btn {
   background: #1ed760;
   color: #111;
-}
-
-.play-btn {
-  background: #667eea;
-  color: white;
-}
-
-.play-btn:disabled {
-  cursor: default;
 }
 
 .add-btn:disabled {
@@ -596,6 +625,15 @@ onMounted(initialize)
   .track-cover {
     width: 56px;
     height: 56px;
+  }
+
+  .track-cover-wrapper {
+    width: 56px;
+    height: 56px;
+  }
+
+  .cover-play-btn {
+    opacity: 1;
   }
 
   .track-actions {
