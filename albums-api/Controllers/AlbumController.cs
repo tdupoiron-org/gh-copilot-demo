@@ -36,7 +36,6 @@ namespace albums_api.Controllers
         }
 
         // GET: albums/sort?sortBy=title|artist|price
-        // function that retrieves albums and sorts them by title, artist or price
         [HttpGet("sort")]
         public IActionResult GetSorted(string sortBy)
         {
