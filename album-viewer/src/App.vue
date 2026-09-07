@@ -5,9 +5,29 @@
         <h1>🎵 {{ isAdmin ? 'Album Admin' : 'Album Collection' }}</h1>
         <p>{{ isAdmin ? 'Create, edit, and remove albums' : 'Discover amazing music albums' }}</p>
       </div>
-      <button class="nav-btn" @click="toggleAdmin">
-        {{ isAdmin ? 'View Collection' : 'Admin' }}
-      </button>
+      <div class="header-actions">
+        <div v-if="!isAdmin" class="view-toggle" aria-label="Collection layout">
+          <button
+            class="view-btn"
+            :class="{ active: viewMode === 'grid' }"
+            :aria-pressed="viewMode === 'grid'"
+            @click="viewMode = 'grid'"
+          >
+            Grid
+          </button>
+          <button
+            class="view-btn"
+            :class="{ active: viewMode === 'list' }"
+            :aria-pressed="viewMode === 'list'"
+            @click="viewMode = 'list'"
+          >
+            List
+          </button>
+        </div>
+        <button class="nav-btn" @click="toggleAdmin">
+          {{ isAdmin ? 'View Collection' : 'Admin' }}
+        </button>
+      </div>
     </header>
 
     <main class="main">
@@ -27,11 +47,12 @@
         @changed="fetchAlbums"
       />
 
-      <div v-else class="albums-grid">
+      <div v-else class="albums-grid" :class="{ 'albums-list': viewMode === 'list' }">
         <AlbumCard 
           v-for="album in albums" 
           :key="album.id" 
           :album="album" 
+          :layout="viewMode"
         />
       </div>
     </main>
@@ -49,6 +70,7 @@ const albums = ref<Album[]>([])
 const loading = ref<boolean>(true)
 const error = ref<string | null>(null)
 const isAdmin = ref<boolean>(false)
+const viewMode = ref<'grid' | 'list'>('grid')
 
 const fetchAlbums = async (): Promise<void> => {
   try {
@@ -98,6 +120,35 @@ const toggleAdmin = (): void => {
   font-size: 1.2rem;
   opacity: 0.9;
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+}
+
+.view-btn {
+  background: transparent;
+  color: white;
+  border: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-btn.active {
+  background: white;
+  color: #667eea;
 }
 
 .nav-btn {
@@ -173,6 +224,11 @@ const toggleAdmin = (): void => {
   padding: 1rem;
 }
 
+.albums-list {
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
 @media (max-width: 768px) {
   .app {
     padding: 1rem;
@@ -185,6 +241,11 @@ const toggleAdmin = (): void => {
   .header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
   }
   
   .albums-grid {
