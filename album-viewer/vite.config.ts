@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
@@ -16,6 +16,14 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true
       }
+    }
+  },
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary', 'json'],
+      reportsDirectory: './coverage',
+      include: ['src/utils/**/*.ts']
     }
   }
 })

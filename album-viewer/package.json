@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "serve": "vite preview",
     "type-check": "vue-tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "test:coverage": "vitest --run --coverage"
   },
   "dependencies": {
     "@types/d3": "^7.4.3",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "@vitejs/plugin-vue": "^5.0.0",
     "@vue/tsconfig": "^0.8.1",
     "typescript": "^5.9.2",
