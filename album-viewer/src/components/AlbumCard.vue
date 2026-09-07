@@ -1,5 +1,5 @@
 <template>
-  <div class="album-card">
+  <div class="album-card" :class="{ 'album-card-list': layout === 'list' }">
     <div class="album-image">
       <img 
         :src="album.image_url" 
@@ -32,9 +32,12 @@ import type { Album } from '../types/album'
 
 interface Props {
   album: Album
+  layout?: 'grid' | 'list'
 }
 
-defineProps<Props>()
+withDefaults(defineProps<Props>(), {
+  layout: 'grid',
+})
 
 const handleImageError = (event: Event): void => {
   const target = event.target as HTMLImageElement
@@ -57,6 +60,16 @@ const handleImageError = (event: Event): void => {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
+.album-card-list {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  align-items: center;
+}
+
+.album-card-list:hover {
+  transform: translateY(-3px);
+}
+
 .album-image {
   position: relative;
   overflow: hidden;
@@ -67,6 +80,11 @@ const handleImageError = (event: Event): void => {
   height: 250px;
   object-fit: cover;
   transition: transform 0.3s ease;
+}
+
+.album-card-list .album-image img {
+  display: block;
+  height: 180px;
 }
 
 .album-card:hover .album-image img {
@@ -146,6 +164,11 @@ const handleImageError = (event: Event): void => {
   gap: 0.75rem;
 }
 
+.album-card-list .album-actions {
+  padding: 1.5rem;
+  min-width: 220px;
+}
+
 .btn {
   flex: 1;
   padding: 0.75rem;
@@ -180,6 +203,14 @@ const handleImageError = (event: Event): void => {
 }
 
 @media (max-width: 768px) {
+  .album-card-list {
+    display: block;
+  }
+
+  .album-card-list .album-image img {
+    height: 220px;
+  }
+
   .album-info {
     padding: 1rem;
   }
@@ -187,6 +218,10 @@ const handleImageError = (event: Event): void => {
   .album-actions {
     padding: 0 1rem 1rem;
     flex-direction: column;
+  }
+
+  .album-card-list .album-actions {
+    padding: 0 1rem 1rem;
   }
   
   .btn {

@@ -3,12 +3,16 @@ scripts:
     command: cd album-viewer && npm ci
     triggers:
       - session.create
-  - name: Test validators (album-viewer)
+  - name: Test frontend (album-viewer)
     command: cd album-viewer && npm test -- --run
+  - name: Test backend (albums-api)
+    command: dotnet test albums-api/albums-api.csproj
   - name: Type-check album-viewer
     command: cd album-viewer && npm run type-check
   - name: Build album-viewer
     command: cd album-viewer && npm run build
+  - name: Run application
+    command: trap 'kill 0' EXIT INT TERM; dotnet run --project albums-api/albums-api.csproj & (cd album-viewer && npm run dev)
 automation:
   auto_issue_session: true
   remote_control: true
